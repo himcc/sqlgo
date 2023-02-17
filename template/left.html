@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <script type="text/javascript" src="/static/jquery-3.6.3.min.js"></script>
+    </head>
+<body>
+    <div>
+        <div>{{.err}}</div>
+        <div>
+            <div style="float: right;">
+                <a href="#" style="text-decoration: none;" onclick="location.reload();return false" >🔄</a>
+            </div>
+            <button onclick="top.location.href = '/selectdb';  ">Select DB</button>
+            <button >Load data from file</button>
+            <button onclick="top.frames['up'].location.href ='/up' ">Run SQL</button>
+        </div>
+        <div style="word-wrap:break-word;"><span style="font-size: 1.17em;font-weight: bold;">DB:</span>{{.dbfile}}</div>
+    </div>
+    <hr>
+    Tables({{.tables | len }}):<br/>
+    {{ range .tables}}
+    <!-- 📋<a target="down" href="/tablemeta?t={{.}}">{{.}}</a><br/> -->
+    📋<a  href="#" onclick="openmeta(this);return false">{{.}}</a><br/>
+    {{end}}
+    <hr>
+    <div id="meta"></div>
+    <script>
+        function openmeta(e){
+            var tablename=$(e).text()
+            console.log(e)
+            // $(this).after('<iframe src="/tablemeta?t='+tablename+'"></iframe>')
+            // $(this).after('AAAAAAAAAAAAAAAAAAAAAAA')
+            $("#meta").text('')
+            $("#meta").append('<iframe id="omgomg" width="100%" height="100px" src="/tablemeta?t='+tablename+'"></iframe>')
+        }
+        function omg(h){
+            $("#omgomg").css("height",h+"px")//.height=h
+        }
+    </script>
+</body>
+</html>
+

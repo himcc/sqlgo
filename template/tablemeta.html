@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <script type="text/javascript" src="/static/sql-formatter.min.js"></script>
+        <script type="text/javascript" src="/static/jquery-3.6.3.min.js"></script>
+        <style>
+            table {
+              font-family: arial, sans-serif;
+              border-collapse: collapse;
+            }
+            
+            td, th {
+              border: 1px solid #dddddd;
+              text-align: left;
+              padding: 4px;
+            }
+            
+            tr:nth-child(even) {
+              background-color: #eeeeee;
+            }
+            </style>
+    </head>
+<body style="margin: 0;">
+    <div>
+        <div>{{.err}}</div>
+        <span style="font-weight: bold;">{{.tableName}}</span><br/>
+        <div id="cont" >
+            <div  style="display: inline-block;vertical-align: top;">
+                schema : 
+                <div id="meta" ></div>
+                indexs : 
+                <div id="tableIndexs" ></div>
+            </div>
+            <div id="sample" style="display: inline-block;vertical-align: top;">
+                sample data : 
+            </div>
+        </div>
+    </div>
+    <script>
+        var omg = {{.}};
+        // var omg = {"createTableSQL":"CREATE TABLE contact_groups(\n   contact_id INTEGER not null PRIMARY KEY ,\n   group_id INTEGER PRIMARY KEY default 0, xxx int AUTOINCREMENT default 'abcd',\n   PRIMARY KEY (contact_id, group_id),\n   FOREIGN KEY (contact_id) \n      REFERENCES contacts (contact_id) \n         ON DELETE CASCADE \n         ON UPDATE NO ACTION,\n   FOREIGN KEY (group_id) \n      REFERENCES groups (group_id) \n         ON DELETE CASCADE \n         ON UPDATE NO ACTION\n) WITHOUT ROWID , STRICT","tableName":"contact_groups"};
+
+        function occurrences(string, subString, allowOverlapping) {
+            string += "";
+            subString += "";
+            if (subString.length <= 0) return (string.length + 1);
+            var n = 0,
+                pos = 0,
+                step = allowOverlapping ? 1 : subString.length;
+            while (true) {
+                pos = string.indexOf(subString, pos);
+                if (pos >= 0) {
+                    ++n;
+                    pos += step;
+                } else break;
+            }
+            return n;
+        }
+
+        function parseColsInfo (fsql){
+            var table_constraint_start = new Set(['CONSTRAINT','PRIMARY','UNIQUE','CHECK','FOREIGN'])
+            var colsInfo = fsql.split('\n').filter(function(s){ 
+                return s.startsWith('    ')
+            }).reduce(function(t,a){
+                if(a.startsWith('     ')){
+                    console.log("A"+a)
+                    return t+' '+a.trim();
+                }else {
+                    if(a.charAt(a.length-1)==','){
+                        if(!a.startsWith('    )')){
+                            console.log("B"+a)
+                            return t+a+'\n';
+                        }else{
+                            console.log("C"+a)
+                            return t+a.trim()+'\n';
+                        }
+                    }else{
+                        if(!a.startsWith('    )')){
+                            console.log("D"+a)
+                            return t+a;
+                        }else{
+                            console.log("E"+a)
+                            return t+a.trim();
+                        }
+                    }
+                }
+            },'').split('\n')
+            .map(function(s){
+                var x = s.trim();
+                if(x.endsWith(',')){
+                    x=x.slice(0,-1);
+                }
+                return x
+            }).filter(function(s){
+                var k = s.split(' ')[0].toUpperCase();
+                return !table_constraint_start.has(k)
+            }).map(function(s){
+                var ret = {name:'',type:'',notnull:false,key:false,default:undefined,autoinc:false}
+                var eles = s.split(' ')
+                ret.name=eles[0].toLowerCase();
+                ret.type=eles[1].toLowerCase();
+                ret.notnull = s.toUpperCase().indexOf(' NOT NULL')>=0
+                ret.key = s.toUpperCase().indexOf(' PRIMARY KEY')>=0
+                ret.autoinc = s.toUpperCase().indexOf(' AUTOINCREMENT')>=0
+                ret.default = (function(){
+                    for (var i=0;i<eles.length;i++) {
+                        if(eles[i].toUpperCase()=='DEFAULT'){
+                            if(eles[i+1].startsWith('(')){
+                                var num = occurrences(eles[i+1],'(',false);
+                                num = num - occurrences(eles[i+1],')',false);
+                                for (var j=i+2;j<eles.length && num!=0;j++){
+                                    num = num + occurrences(eles[j],'(',false);
+                                    num = num - occurrences(eles[j],')',false);
+                                }
+                                return eles.slice(i+1,j).join(' ');
+                            }else if (eles[i+1].startsWith('"')){
+                                var num = occurrences(eles[i+1],'"',false);
+                                num = num - occurrences(eles[i+1],'\\"',false);
+                                for (var j=i+2;j<eles.length && num%2!=0;j++){
+                                    num = num + occurrences(eles[j],'"',false);
+                                    num = num - occurrences(eles[j],'\\"',false);
+                                }
+                                return eles.slice(i+1,j).join(' ');
+                            }else if (eles[i+1].startsWith("'")){
+                                var num = occurrences(eles[i+1],"'",false);
+                                num = num - occurrences(eles[i+1],"\\'",false);
+                                for (var j=i+2;j<eles.length && num%2!=0;j++){
+                                    num = num + occurrences(eles[j],"'",false);
+                                    num = num - occurrences(eles[j],"\\'",false);
+                                }
+                                return eles.slice(i+1,j).join(' ');
+                            }else{
+                                return eles[i+1];
+                            }
+                        }
+                    }
+                    return undefined;
+                })();
+                return ret;
+            })
+            return colsInfo
+        }
+
+        function showColsInfo(ele,cols){
+            //{name:'',type:'',notnull:false,key:false,default:undefined,autoinc:false}
+
+            var a = `
+                <table>
+                    <thead style="font-weight: bold;background-color: #c7e8fb;">
+                        <tr>
+                            <td>name</td><td>type</td><td>not<br/>null</td><td>default</td><td>primary<br/>key</td><td>auto<br/>inc</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            var b = `</tbody></table>`
+            var c = cols.map(function(d,i){
+                return `<tr>
+                            <td>${d.name}</td><td>${d.type}</td><td style="text-align: center;">${d.notnull?'🗹':''}</td><td style="text-align: right;">${d.default?d.default:''}</td><td style="text-align: center;">${d.key?'🗹':''}</td><td style="text-align: center;">${d.autoinc?'🗹':''}</td>
+                        </tr>`;
+            }).join('');
+            $(ele).append(a+c+b)
+        }
+
+        function showSampleData(ele,data){
+            //{name:'',type:'',notnull:false,key:false,default:undefined,autoinc:false}
+
+            var a = `
+                <table>
+                    <thead style="font-weight: bold;background-color: #c7e8fb;">
+                        <tr>
+            `
+            +data.cols.map(function(d){
+                return '<td>'+d.toLowerCase()+'</td>'
+            }).join('')+
+            `
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            var b = `</tbody></table>`
+            var c = '';
+            if(data.rows!=null){
+                c=data.rows.map(function(arr){
+                    return '<tr>'+
+                        arr.map(function(item){
+                            return '<td>'+item+'</td>'
+                        }).join('')+'</tr>';
+                }).join('');
+            }
+            $(ele).append(a+c+b)
+        }
+
+        var fsql = sqlFormatter.format(omg.createTableSQL, { language: 'sqlite' ,expressionWidth:1})
+        console.log(fsql)
+
+        var colsInfo = parseColsInfo(fsql)
+        showColsInfo("#meta",colsInfo)
+        console.log(colsInfo)
+
+        if(omg.sampleData!=null){
+            showSampleData("#sample",omg.sampleData)
+        }
+
+        //
+        //
+        //
+        var body = document.body,
+        html = document.documentElement;
+
+        var height = Math.max( body.scrollHeight, body.offsetHeight, 
+                       html.clientHeight, html.scrollHeight, html.offsetHeight );
+
+        parent.omg(body.scrollHeight+50)
+
+        console.log([body.scrollHeight, body.offsetHeight, 
+                       html.clientHeight, html.scrollHeight, html.offsetHeight])
+
+
+    </script>
+</body>

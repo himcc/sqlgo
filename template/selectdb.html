@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>SelectDB</title>
+    <script type="text/javascript" src="/static/jquery-3.6.3.min.js"></script>
+    <script src="/static/main.js"></script>
+
+</head>
+<body>
+    
+    <div style="margin: 50px auto;width: fit-content;">
+        <h2>Select DB</h2>
+        <div id="cont" >
+            <button onclick="getDBFile()">select or create db file</button><br/>
+            <hr/>
+            Recently opened db :
+            <div id="dblist">
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setCookie(cname, cvalue, exdays) {
+            console.log("setCookie "+cname+" : "+cvalue)
+            var d = new Date();
+            d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+            var expires = "expires="+d.toUTCString();
+            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        }
+
+        function getCookie(cname) {
+            var name = cname + "=";
+            var ca = document.cookie.split(';');
+            for(var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name)  == 0) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
+
+        function openDB(dbfile){
+            $.get("/opendb?p="+encodeURIComponent(dbfile),function (d,status,xhr){
+                if(d.code==200){
+                    setCookie("currentdb",encodeURIComponent(dbfile),300);
+
+                    //
+                    var s = new Set();
+                    decodeURIComponent(getCookie("historylist")).split('#').forEach(function(p){
+                        s.add(p);
+                    });
+                    s.add(dbfile);
+
+                    var parr = [];
+                    s.forEach(function(p){
+                        parr.push(p)
+                    });
+
+                    setCookie("historylist",encodeURIComponent(parr.join('#')),300);
+
+                    location.href="/"
+                }else{
+                    alert("open db failed :\n"+d.msg)
+                }
+            },"json");
+        }
+
+        explorer.init("#cont",function(filepath){
+            openDB(filepath)
+        },{name:"create new db",Fn:function(filepath){
+            openDB(filepath)
+        }})
+
+        function getDBFile(){
+            explorer.listfile("")
+        }
+        
+        (function showHistorylist(){
+            var historylistDB = decodeURIComponent(getCookie("historylist"));
+            historylistDB.split('#').forEach(function(d){
+                if(d!=''){
+                    $("#dblist").append('<div><a href="#" style="text-decoration: none;" class="delPath">❌</a> <a href="#" class="historyFile">'+d+'</a></div>');
+                }
+            });
+            $(".delPath").click(function(){
+                $(this).parent().remove();
+                var pp = $(this).next().text();
+                var cc = decodeURIComponent(getCookie("historylist")).split('#').filter(function(ele){
+                    return !(ele==pp)
+                }).join('#')
+                setCookie("historylist",encodeURIComponent(cc),300);
+                if(pp==decodeURIComponent(getCookie("currentdb"))){
+                    setCookie("currentdb",'',300);
+                }
+            });
+
+            $(".historyFile").click(function(){
+                var filepath = $(this).text();
+                openDB(filepath);
+            });
+        })();
+
+        console.log("currentdb ("+decodeURIComponent(getCookie("currentdb"))+")")
+        console.log("historylist ("+decodeURIComponent(getCookie("historylist"))+")")
+    </script>
+</body>
+</html>

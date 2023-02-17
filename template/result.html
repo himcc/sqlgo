@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <script type="text/javascript" src="/static/jquery-3.6.3.min.js"></script>
+        <style>
+            table {
+              font-family: arial, sans-serif;
+              border-collapse: collapse;
+            }
+            
+            td, th {
+              border: 1px solid #dddddd;
+              text-align: left;
+              padding: 4px;
+            }
+            
+            tr:nth-child(even) {
+              background-color: #eeeeee;
+            }
+        </style>
+    </head>
+<body>
+    <div>{{.err}}</div>
+        <span style="font-weight: bold;">Result</span><br/>
+        <div id="cont" >
+            <div id="sqltag" style="margin: 15px 0 0 0;"></div>
+            <hr>
+            <div id="sqlResult" ></div>
+        </div>
+    </div>
+    <script>
+        var dd = {{.}}
+
+        dd.results.forEach(function(d,i){
+            $("#sqltag").append(`<a dtag="${i+1}" style="`+(i==0?'font-weight: bold;':'')+`background-color: `+(i==0?'aqua':'white')+`;border: 1px solid cornflowerblue;padding: 5px;" href="#" class="sqltag" >sql${i+1}</a>`)
+        });
+        dd.results.forEach(function(d,i){
+            // err sql  result{} type
+            //                     select cols rows
+            //                      xxx num
+            console.log(i+' '+d)
+            function showResult(){
+                if (d.result.type=='select'){
+                    var a = `
+                        <table>
+                            <thead style="font-weight: bold;background-color: #c7e8fb;">
+                                <tr>
+                    `
+                    +d.result.cols.map(function(d){
+                        return '<td>'+d.toLowerCase()+'</td>'
+                    }).join('')+
+                    `
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    var b = `</tbody></table>`
+                    var c = '';
+                    if(d.result.rows!=null){
+                        c=d.result.rows.map(function(arr){
+                            return '<tr>'+
+                                arr.map(function(item){
+                                    return '<td>'+item+'</td>'
+                                }).join('')+'</tr>';
+                        }).join('');
+                    }
+                    return a+c+b
+                }else{
+                    return 'RowsAffected '+d.result.num
+                }
+            }
+            var eleStr = `
+            <div style="display: `+(i==0?'':'none')+`;" dtag="${i+1}" class="sqlResult">
+                sql${i+1}
+                <div style="border: 2px solid cornflowerblue;margin: 10px 0;padding: 5px;">
+                    ${d.sql}
+                </div>
+                <div style="color: red;">
+                `+(d.err==null?'':d.err)+`
+                </div>
+                `+(d.err==null?showResult():'')+`
+            </div>`
+            console.log("XXXX"+eleStr)
+            $("#sqlResult").append(eleStr)
+        });
+
+        $(".sqltag").click(function(){
+            var dtag = $(this).attr('dtag')
+            $(".sqlResult").css("display","none")
+            $(".sqlResult[dtag="+dtag+"]").css("display","")
+
+            $(".sqltag").css("font-weight","").css("background-color","white")
+            $(".sqltag[dtag="+dtag+"]").css("font-weight","bold").css("background-color","aqua")
+
+
+            return false;
+        })
+
+    </script>
+</body>
+</html>
