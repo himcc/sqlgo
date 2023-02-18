@@ -24,16 +24,16 @@
     <div>
         <span style="font-weight: bold;">Result</span><br/>
         <div id="cont" >
-            <div id="sqltag" style="margin: 15px 0 0 0;"></div>
-            <hr>
-            <div id="sqlResult" ></div>
+            <div id="sqltag" style="display: inline-block;vertical-align: top;width:50px;max-width:50px;"></div>
+            <div id="sqlResult" style="display: inline-block;vertical-align: top;"></div>
         </div>
     </div>
     <script>
         var dd = {{.}}
 
         dd.results.forEach(function(d,i){
-            $("#sqltag").append(`<a dtag="${i+1}" style="`+(i==0?'font-weight: bold;':'')+`background-color: `+(i==0?'aqua':'white')+`;border: 1px solid cornflowerblue;padding: 5px;" href="#" class="sqltag" >sql${i+1}</a>`)
+            // $("#sqltag").append(`<a dtag="${i+1}" style="`+(i==0?'font-weight: bold;':'')+`background-color: `+(i==0?'aqua':'white')+`;border: 1px solid cornflowerblue;padding: 5px;" href="#" class="sqltag" >sql${i+1}</a>`)
+            $("#sqltag").append(`<div style="text-align: center;padding: 5px 0;width: 100%; overflow: hidden;background-color: `+(i==0?'aqua':'white')+`;border: 1px solid cornflowerblue;" dtag="${i+1}"  class="sqltag" ><a  style="" href="#" >sql${i+1}</a></div>`)
         });
         dd.results.forEach(function(d,i){
             // err sql  result{} type
@@ -72,9 +72,10 @@
             var eleStr = `
             <div style="display: `+(i==0?'':'none')+`;" dtag="${i+1}" class="sqlResult">
                 
-                <div style="border: 2px solid cornflowerblue;margin: 10px 0;padding: 5px;">
+                <div style="/*border: 2px solid cornflowerblue;margin: 10px 0;padding: 5px;*/">
                     ${d.sql}
                 </div>
+                <hr>
                 <div style="color: red;">
                 `+(d.err==null?'':d.err)+`
                 </div>

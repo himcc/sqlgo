@@ -395,14 +395,18 @@ func main() {
 			})
 			return
 		}
-
+		var lineno = 0
 		for {
+			lineno++
 			records, err4 := fn()
 			if err4 != nil {
 				c.JSON(200, gin.H{
 					"err": err4.Error(),
 				})
 				return
+			}
+			if p.HasHeader && lineno == 1 {
+				continue
 			}
 			if records == nil {
 				break
@@ -579,13 +583,11 @@ func runSQL(sql string) (gin.H, error) {
 	} else if strings.ToLower(words[0]) == "insert" {
 		return runRetNum(sql, "insert")
 	} else if strings.ToLower(words[0]) == "create" {
-		if len(words) > 2 && (strings.ToLower(words[1]) == "table" || strings.ToLower(words[2]) == "table") {
-			return runRetNum(sql, "createTable")
-		} else {
-			return nil, errors.New("support select , insert , create table , delete , update")
-		}
+		return runRetNum(sql, "create")
+	} else if strings.ToLower(words[0]) == "drop" {
+		return runRetNum(sql, "drop")
 	} else {
-		return nil, errors.New("support select , insert , create table , delete , update")
+		return nil, errors.New("support select , insert , create , drop , delete , update")
 	}
 }
 
