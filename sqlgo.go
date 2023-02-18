@@ -519,7 +519,8 @@ func openbrowser(url string) {
 		err = fmt.Errorf("unsupported platform")
 	}
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		log.Println("\n\n\nOpen browser failed. You can open " + url + " in your browser manually.\n\n\n")
 	}
 }
 

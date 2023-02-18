@@ -51,7 +51,11 @@ var explorer = {
                             $(explorer.divID).append(`<a href="#" style="font-size: 1.17em;font-weight: bold;" onclick='explorer.listfile("/")'' >`+'/</a>');
                         }
                     }else{
-                        $(explorer.divID).append(sp);
+                        if(sp=='/' && i==1){
+
+                        }else{
+                            $(explorer.divID).append(sp);
+                        }
                         if(i==(pathItems.length-1)){
                             $(explorer.divID).append(`<span style="font-size: 1.17em;font-weight: bold;" >`+aitem+'</span>');
                         }else{
@@ -93,7 +97,11 @@ var explorer = {
     listfilePre:function (e){
         var pp = $("#basePath").val()
         if(pp.startsWith('/')){
-            explorer.listfile(pp+'/'+e.text)
+            if(pp=='/'){
+                explorer.listfile(pp+e.text)
+            }else{
+                explorer.listfile(pp+'/'+e.text)
+            }
         }else{
             explorer.listfile(pp+'\\'+e.text)
         }
