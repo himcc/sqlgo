@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <script type="text/javascript" src="/static/jquery-3.6.3.min.js"></script>
+        <style>
+            table {
+              font-family: arial, sans-serif;
+              border-collapse: collapse;
+            }
+            
+            td, th {
+              border: 1px solid #dddddd;
+              text-align: left;
+              padding: 4px;
+            }
+            
+            tr:nth-child(even) {
+              background-color: #eeeeee;
+            }
+        </style>
+    </head>
+<body>
+    <div>{{.err}}</div>
+    <div>{{.name}}</div>
+    <hr>
+    <div id="cont">
+    </div>
+    <script>
+        var omg = {{.}}
+
+
+
+        var azSet = new Set([
+             "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+            ,"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"
+        ]);
+        var nameSet = new Set(["_"
+            ,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+            ,"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"
+            ,"0","1","2","3","4","5","6","7","8","9"])
+        function nameOK(s){
+            if(s==null || s.length<1){
+                return false;
+            }
+            if(!azSet.has(s.charAt(0))){
+                return false;
+            }
+            for(var i=0;i<s.length;i++){
+                if(!nameSet.has(s.charAt(i))){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+		//  err
+		//  name
+		//  cont[]
+		//    name
+		//    rows[][]
+        var confTable = {
+            contShow: function (optDiv){
+                if (omg.cont.length==1) {
+                    omg.cont[0].filepath=omg.name;
+                    confTable.showBody(optDiv,omg.cont[0],0,'')
+                }else if (omg.cont.length>1) {
+                    $(optDiv).append(`<div id="tags" style="display: inline-block;vertical-align: top;width:100px;max-width:100px;"></div>
+                    <div id="bodys" style="display: inline-block;vertical-align: top;"></div>`)
+                    confTable.showTags("#tags",omg.cont)
+                    omg.cont.forEach(function(item,i){
+                        item.filepath=omg.name;
+                        confTable.showBody("#bodys",item,i,i==0?'':'none');//
+                    });
+
+                }else{
+
+                }
+                //
+                $(".tag").click(function(){
+                    var dtag = $(this).attr('dtag')
+                    $(".body").css("display","none")
+                    $(".body[dtag="+dtag+"]").css("display","")
+
+                    $(".tag").css("background-color","white")
+                    $(".tag[dtag="+dtag+"]").css("background-color","aqua")
+
+                    return false;
+                });
+                $(".hasheader").click(function(){
+                    if(this.checked){
+                        confTable.genColName($(this).attr('dtag'));
+                    }
+                });
+                $(".createtable").click(function(){
+                    var dtag = $(this).attr('dtag')
+                    confTable.loadfile(dtag)
+                });
+            },
+            showTags:function(optDiv,cont){
+                cont.forEach(function(d,i){
+                    if(d.rows==null || d.rows.length<1 || d.rows[0].length<1){
+                        return
+                    }
+                    $(optDiv).append(`<div style="text-align: center;padding: 5px 0;width: 100%; overflow: hidden;background-color: `+(i==0?'aqua':'white')+`;border: 1px solid cornflowerblue;" dtag="${i}"  class="tag" ><a  style="" href="#" >${d.name}</a></div>`)
+                });
+            },
+            showBody:function(optDiv,asheet,i,display){
+                function genTableName(){
+                    var filepath = asheet.filepath
+                    if(filepath==null){
+                        filepath=''
+                    }else{
+                        if(filepath.startsWith('/')){
+                            filepath=filepath.split('/').slice(-1).join('');
+                        }else{
+                            filepath=filepath.split('\\').slice(-1).join('');
+                        }
+                        console.log("PPPPPPPPPPP"+filepath)
+                        filepath=filepath.split('.').slice(0,-1).join('_');
+                    }
+
+                    var name = asheet.name;
+                    if(name==null){
+                        name="";
+                    }else{
+                        name = name.replaceAll('.','_')
+                    }
+
+                    if(nameOK(filepath)&& nameOK(name)){
+                        return filepath+'_'+name;
+                    }else if(nameOK(filepath)){
+                        return filepath;
+                    }else if(nameOK(name)){
+                        return name;
+                    }else {
+                        return '';
+                    }
+                }
+                if(asheet.rows==null || asheet.rows.length<1 || asheet.rows[0].length<1){
+                    $(optDiv).append(`
+                    <div dtag="${i}"  class="body"  style="display: ${display}">${asheet.name} is empty</div>
+                    `);
+                    return
+                }
+                var colnum = asheet.rows[0].length
+                var ss = `
+                <div dtag="${i}"  class="body"  style="display: ${display}">
+                    <div><span>table name : </span><input type="text" class="tablename" dtag="${i}" value="`+genTableName()+`">
+                        <br><input type="checkbox" class="hasheader" dtag="${i}">Is first row the header ?</div>
+                    <div style="vertical-align: top;">
+                        <table>
+                            <thead style="font-weight: bold;background-color: #c7e8fb;">
+                                <tr>
+                                    <td><div>col name</div><div>col type</div></td>
+                                    `+asheet.rows[0].map(function(ceil,colno){
+                                        return `<td><div><input dtag="${i}" class="colname" colno="${colno}" type="text" value="" style="width:80px"></div>
+                                            <div><select dtag="${i}" class="coltype" colno="${colno}" style="width:88px"><option>text</option><option>bigint</option><option>double</option></select></div></td>`
+                                    }).join('')+`
+                                </tr>
+                            </thead>
+                            <tbody>
+                                `+asheet.rows.map(function(row){
+                                    var ret='<tr><td></td>'
+                                    if(row.length>=colnum){
+                                        for( var i=0;i<colnum;i++){
+                                            ret+='<td>'+row[i]+'</td>'
+                                        }
+                                    }else{
+                                        for( var i=0;i<row.length;i++){
+                                            ret+='<td>'+row[i]+'</td>'
+                                        }
+                                        var blankNum = colnum-row.length
+                                        for(var i=0;i<blankNum;i++){
+                                            ret+='<td></td>';
+                                        }
+                                    }
+                                    return ret+'</tr>';
+                                }).join('')+`
+                            </tbody>
+                        </table>
+                        <br><button class="createtable" dtag="${i}">create table and load data</button>
+                    </div>
+                </div>
+                `
+                $(optDiv).append(ss);
+            },
+            genColName:function(dtag){
+                $(".colname[dtag="+dtag+"]").each(function(){
+                    var colno = $(this).attr('colno');
+                    var n = omg.cont[dtag].rows[0][colno].replaceAll('.','_');
+                    if(nameOK(n)){
+                        $(this).val(n);
+                    }
+                });
+            },
+            loadfile: function(dtag){
+                var hasblank=false;
+                var params = {
+                    sheetno: parseInt(dtag),
+                    filepath: omg.name,
+
+                    hasHeader:false,
+                    tablename:'',
+                    cols:[],// colname  coltype
+                }
+
+                params.hasHeader=$('.hasheader[dtag='+dtag+']').prop('checked')
+                if($('.tablename[dtag='+dtag+']').val()==''){
+                    hasblank=true;
+                    alert('table name is blank')
+                }else{
+                    params.tablename=$('.tablename[dtag='+dtag+']').val();
+                }
+
+                $('.colname[dtag='+dtag+']').each(function(){
+                    if(hasblank){
+                        return;
+                    }else{
+                        var n = $(this).val()
+                        if(n==''){
+                            hasblank=true;
+                            alert('col name can\'t be blank')
+                        }else{
+                            var colno = parseInt($(this).attr('colno'))
+                            if(params.cols[colno]==null){
+                                params.cols[colno]={}
+                            }
+                            params.cols[colno].colname=n;
+                        }
+                    }
+                });
+
+                $('.coltype[dtag='+dtag+']').each(function(){
+                    if(hasblank){
+                        return;
+                    }else{
+                        var n = $(this).val()
+                        if(n==''){
+                            hasblank=true;
+                            alert('col type can\'t be blank')
+                        }else{
+                            var colno = parseInt($(this).attr('colno'))
+                            if(params.cols[colno]==null){
+                                params.cols[colno]={}
+                            }
+                            params.cols[colno].coltype=n;
+                        }
+                    }
+                });
+
+                if(hasblank){
+                    return;
+                }
+
+                var sql=
+`sql comfirm :
+create table ${params.tablename} (
+`+params.cols.map(function(item,i,arr){
+    return '    '+item.colname+' '+item.coltype+(i==(arr.length-1)?'':',')
+}).join('\n')+`    
+)`
+                var typewarning = '\nAre you sure all col\'s type is text? '
+                params.cols.forEach(function(d){
+                    if(d.coltype!='text'){
+                        typewarning=''
+                    }
+                });
+                if(confirm(sql+typewarning)){
+                    $.post('/loadfile',{params:JSON.stringify(params)},function(data,status,xhr){
+                        if(data.err==null){
+                            $('.body[dtag='+dtag+']').text('');
+                            $('.body[dtag='+dtag+']').append('Load data successfully. <a href="/up">Run SQL</a>');
+                            top.frames['left'].location.reload();
+                        }else{
+                            alert('submit tailed, '+data.err)
+                        }
+                    },"json")
+                }else{
+
+                }
+            },
+        }
+
+        if(omg.err==null){
+            confTable.contShow("#cont");
+        }
+    </script>
+</body>
+</html>

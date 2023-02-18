@@ -2,9 +2,12 @@ package main
 
 import (
 	"embed"
+	"encoding/csv"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -13,12 +16,14 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/shirou/gopsutil/disk"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -111,6 +116,10 @@ func main() {
 	r.GET("/selectdb", func(c *gin.Context) {
 
 		c.HTML(200, "selectdb.html", nil)
+	})
+
+	r.GET("/selectdatafile", func(c *gin.Context) {
+		c.HTML(200, "selectdatafile.html", nil)
 	})
 
 	r.GET("/explorer", func(c *gin.Context) {
@@ -244,6 +253,190 @@ func main() {
 		}
 		c.HTML(200, "result.html", gin.H{
 			"results": results,
+		})
+	})
+
+	r.GET("/parsefile", func(c *gin.Context) {
+		f := c.Query("f")
+		f = strings.Trim(f, " \n\r")
+		if len(f) < 1 {
+			c.HTML(200, "parsefile.html", gin.H{
+				"err": "file path is blank",
+			})
+			return
+		}
+		//  err
+		//  name
+		//  cont[]
+		//    name
+		//    rows[][]
+		fItems := strings.Split(f, ".")
+		extName := strings.ToLower(fItems[len(fItems)-1])
+		if extName == "csv" {
+			osfile, err := os.Open(f)
+			if err != nil {
+				c.HTML(200, "parsefile.html", gin.H{
+					"err": f + " " + err.Error(),
+				})
+				return
+			}
+			r := csv.NewReader(osfile)
+			var records [][]string
+			var num = 0
+			for {
+				record, err := r.Read()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					c.HTML(200, "parsefile.html", gin.H{
+						"err": f + " " + err.Error(),
+					})
+					return
+				}
+				records = append(records, record)
+				num++
+				if num >= 10 {
+					break
+				}
+			}
+			err3 := osfile.Close()
+			if err3 != nil {
+				log.Println(f, err3)
+			}
+			var cont []gin.H
+			cont = append(cont, gin.H{
+				"name": "",
+				"rows": records,
+			})
+			c.HTML(200, "parsefile.html", gin.H{
+				"name": f,
+				"cont": cont,
+			})
+			return
+		} else if extName == "xlsx" {
+			cont, err := getExcelTop(f)
+			if err != nil {
+				c.HTML(200, "parsefile.html", gin.H{
+					"err": "file path is blank",
+				})
+				return
+			}
+			c.HTML(200, "parsefile.html", gin.H{
+				"name": f,
+				"cont": cont,
+			})
+			return
+		} else {
+			c.HTML(200, "parsefile.html", gin.H{
+				"err": f + " file format don't support",
+			})
+			return
+		}
+	})
+
+	r.POST("/loadfile", func(c *gin.Context) {
+		type LoadFileParams struct {
+			Sheetno   int
+			Filepath  string
+			HasHeader bool
+			Tablename string
+			Cols      []map[string]string
+		}
+		params, _ := c.GetPostForm("params")
+
+		var p LoadFileParams
+		err := json.Unmarshal([]byte(params), &p)
+		if err != nil {
+			log.Println(err)
+			c.JSON(200, gin.H{
+				"err": err.Error(),
+			})
+			return
+		}
+		// create table
+		var colDefine []string
+		for _, nameType := range p.Cols {
+			colDefine = append(colDefine, " `"+nameType["colname"]+"` "+nameType["coltype"]+" ")
+		}
+		var createTableSQL = "create table `" + p.Tablename + "` ( " + strings.Join(colDefine, ", ") + " )"
+		log.Println(createTableSQL)
+		_, err3 := runRetNum(createTableSQL, "createTable")
+		if err3 != nil {
+			c.JSON(200, gin.H{
+				"err": err3.Error(),
+			})
+			return
+		}
+
+		// load data
+		fItems := strings.Split(p.Filepath, ".")
+		extName := strings.ToLower(fItems[len(fItems)-1])
+		var fn func() ([]string, error)
+		if extName == "csv" {
+			fn, err = getCsvReader(p.Filepath)
+			if err != nil {
+				c.JSON(200, gin.H{
+					"err": err.Error(),
+				})
+				return
+			}
+		} else if extName == "xlsx" {
+			fn, err = getExcelReader(p.Filepath, p.Sheetno)
+			if err != nil {
+				c.JSON(200, gin.H{
+					"err": err.Error(),
+				})
+				return
+			}
+		} else {
+			c.JSON(200, gin.H{
+				"err": p.Filepath + " file format don't support",
+			})
+			return
+		}
+
+		for {
+			records, err4 := fn()
+			if err4 != nil {
+				c.JSON(200, gin.H{
+					"err": err4.Error(),
+				})
+				return
+			}
+			if records == nil {
+				break
+			} else {
+				var sql = "insert into `" + p.Tablename + "` values ("
+				for i, nameType := range p.Cols {
+					if i != 0 {
+						sql = sql + ", "
+					}
+					if nameType["coltype"] == "text" {
+						sql = sql + "'" + records[i] + "'"
+					} else {
+						sql = sql + records[i]
+					}
+				}
+				sql = sql + ")"
+				h, err5 := runRetNum(sql, "insert")
+				if err5 != nil {
+					c.JSON(200, gin.H{
+						"err": err5.Error(),
+					})
+					return
+				}
+				if h["num"].(int64) != 1 {
+					c.JSON(200, gin.H{
+						"err": "insert RowsAffected " + strconv.FormatInt(h["num"].(int64), 10),
+					})
+					return
+				}
+			}
+		}
+
+		c.JSON(200, gin.H{
+			"err": nil,
 		})
 	})
 
@@ -394,4 +587,109 @@ func runSQL(sql string) (gin.H, error) {
 	} else {
 		return nil, errors.New("support select , insert , create table , delete , update")
 	}
+}
+
+func getExcelTop(filename string) ([]gin.H, error) {
+
+	f, err := excelize.OpenFile(filename)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return nil, err
+	}
+	defer func() {
+		// Close the spreadsheet.
+		if err := f.Close(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}()
+
+	sheetList := f.GetSheetList()
+
+	var ret []gin.H
+
+	for _, sheet := range sheetList {
+
+		rows, err := f.Rows(sheet)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return nil, err
+		}
+		rowNo := 1
+		var myrows [][]string
+		for rows.Next() {
+			if rowNo > 10 {
+				break
+			} else {
+				rowNo++
+			}
+			row, err := rows.Columns()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return nil, err
+			}
+			myrows = append(myrows, row)
+		}
+		ret = append(ret, gin.H{
+			"name": sheet,
+			"rows": myrows,
+		})
+		if err = rows.Close(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}
+	return ret, nil
+}
+
+func getCsvReader(filepath string) (func() ([]string, error), error) {
+	osfile, err := os.Open(filepath)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	r := csv.NewReader(osfile)
+	return func() ([]string, error) {
+		record, err := r.Read()
+		if err == io.EOF {
+			err3 := osfile.Close()
+			if err3 != nil {
+				return nil, err3
+			}
+			return nil, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		return record, nil
+	}, nil
+}
+
+func getExcelReader(filepath string, sheetno int) (func() ([]string, error), error) {
+	f, err := excelize.OpenFile(filepath)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	sheetList := f.GetSheetList()
+	rows, err := f.Rows(sheetList[sheetno])
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return func() ([]string, error) {
+		if rows.Next() {
+			row, err := rows.Columns()
+			if err != nil {
+				log.Println(err)
+				return nil, err
+			}
+			return row, nil
+		} else {
+			err3 := f.Close()
+			if err3 != nil {
+				return nil, err3
+			}
+			return nil, nil
+		}
+	}, nil
 }

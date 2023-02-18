@@ -21,6 +21,7 @@
     </head>
 <body>
     <div>{{.err}}</div>
+    <div>
         <span style="font-weight: bold;">Result</span><br/>
         <div id="cont" >
             <div id="sqltag" style="margin: 15px 0 0 0;"></div>
@@ -38,7 +39,6 @@
             // err sql  result{} type
             //                     select cols rows
             //                      xxx num
-            console.log(i+' '+d)
             function showResult(){
                 if (d.result.type=='select'){
                     var a = `
@@ -71,7 +71,7 @@
             }
             var eleStr = `
             <div style="display: `+(i==0?'':'none')+`;" dtag="${i+1}" class="sqlResult">
-                sql${i+1}
+                
                 <div style="border: 2px solid cornflowerblue;margin: 10px 0;padding: 5px;">
                     ${d.sql}
                 </div>
@@ -80,7 +80,6 @@
                 </div>
                 `+(d.err==null?showResult():'')+`
             </div>`
-            console.log("XXXX"+eleStr)
             $("#sqlResult").append(eleStr)
         });
 

@@ -11,7 +11,7 @@
                 <a href="#" style="text-decoration: none;" onclick="location.reload();return false" >🔄</a>
             </div>
             <button onclick="top.location.href = '/selectdb';  ">Select DB</button>
-            <button >Load data from file</button>
+            <button onclick="top.frames['up'].location.href='/selectdatafile' ">Load data from file</button>
             <button onclick="top.frames['up'].location.href ='/up' ">Run SQL</button>
         </div>
         <div style="word-wrap:break-word;"><span style="font-size: 1.17em;font-weight: bold;">DB:</span>{{.dbfile}}</div>
@@ -27,14 +27,11 @@
     <script>
         function openmeta(e){
             var tablename=$(e).text()
-            console.log(e)
-            // $(this).after('<iframe src="/tablemeta?t='+tablename+'"></iframe>')
-            // $(this).after('AAAAAAAAAAAAAAAAAAAAAAA')
             $("#meta").text('')
-            $("#meta").append('<iframe id="omgomg" width="100%" height="100px" src="/tablemeta?t='+tablename+'"></iframe>')
+            $("#meta").append('<iframe id="omgomg" width="100%" height="100px" src="/tablemeta?t='+encodeURIComponent(tablename)+'"></iframe>')
         }
         function omg(h){
-            $("#omgomg").css("height",h+"px")//.height=h
+            $("#omgomg").css("height",h+"px")
         }
     </script>
 </body>

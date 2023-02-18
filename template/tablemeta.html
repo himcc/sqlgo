@@ -63,23 +63,18 @@
                 return s.startsWith('    ')
             }).reduce(function(t,a){
                 if(a.startsWith('     ')){
-                    console.log("A"+a)
                     return t+' '+a.trim();
                 }else {
                     if(a.charAt(a.length-1)==','){
                         if(!a.startsWith('    )')){
-                            console.log("B"+a)
                             return t+a+'\n';
                         }else{
-                            console.log("C"+a)
                             return t+a.trim()+'\n';
                         }
                     }else{
                         if(!a.startsWith('    )')){
-                            console.log("D"+a)
                             return t+a;
                         }else{
-                            console.log("E"+a)
                             return t+a.trim();
                         }
                     }
@@ -97,7 +92,7 @@
             }).map(function(s){
                 var ret = {name:'',type:'',notnull:false,key:false,default:undefined,autoinc:false}
                 var eles = s.split(' ')
-                ret.name=eles[0].toLowerCase();
+                ret.name=trimColName(eles[0].toLowerCase());
                 ret.type=eles[1].toLowerCase();
                 ret.notnull = s.toUpperCase().indexOf(' NOT NULL')>=0
                 ret.key = s.toUpperCase().indexOf(' PRIMARY KEY')>=0
@@ -192,16 +187,21 @@
         }
 
         var fsql = sqlFormatter.format(omg.createTableSQL, { language: 'sqlite' ,expressionWidth:1})
-        console.log(fsql)
+        
 
         var colsInfo = parseColsInfo(fsql)
         showColsInfo("#meta",colsInfo)
-        console.log(colsInfo)
 
         if(omg.sampleData!=null){
             showSampleData("#sample",omg.sampleData)
         }
 
+        function trimColName(n){
+            if(n.charAt(0)=='`' && n.charAt(n.length-1)=='`'){
+                return n.substring(1,n.length-1)
+            }
+            return n
+        }
         //
         //
         //
@@ -213,8 +213,6 @@
 
         parent.omg(body.scrollHeight+50)
 
-        console.log([body.scrollHeight, body.offsetHeight, 
-                       html.clientHeight, html.scrollHeight, html.offsetHeight])
 
 
     </script>

@@ -1,13 +1,15 @@
 
 var explorer = {
-    init:function(divID,fileFn,newFileInfo){
+    init:function(divID,fileFn,newFileInfo,opts){
         explorer.divID=divID;
         this.fileFn=fileFn;
         this.newFileInfo=newFileInfo;
+        this.opts=opts;
     },
     divID:"",
     fileFn:null,
     newFileInfo:null,
+    opts:null,
     listfile:function (p){
         $.get("/explorer?p="+encodeURIComponent(p),function (d,status,xhr){
             if(d.code==200){
@@ -60,7 +62,17 @@ var explorer = {
                 $(explorer.divID).append('<br/><br/>');
                 //
                 //
-                var eles = d.items.map(function(item){
+                var eles = d.items.filter(function(item){
+                    if(item.IsDir){
+                        return true;
+                    }else {
+                        if(explorer.opts!=null && explorer.opts.fileFilter!=null){
+                            return explorer.opts.fileFilter(item.Name)
+                        }else{
+                            return true;
+                        }
+                    }
+                }).map(function(item){
                     var ret=''
                     if(item.IsDir){
                         ret=`📁<a href="#" onclick="explorer.listfilePre(this)">`+item.Name+'</a><br/>';

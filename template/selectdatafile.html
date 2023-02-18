@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <script type="text/javascript" src="/static/jquery-3.6.3.min.js"></script>
+    <script src="/static/main.js"></script>
+
+</head>
+<body>
+    
+    <div style="margin: 20px auto;width: fit-content;">
+        <h2>Select data file</h2>
+        support .csv and excel<hr>
+        <div id="cont" >
+        </div>
+    </div>
+
+    <script>
+
+        function openDB(dbfile){
+            $.get("/opendb?p="+encodeURIComponent(dbfile),function (d,status,xhr){
+                if(d.code==200){
+                    setCookie("currentdb",encodeURIComponent(dbfile),300);
+
+                    //
+                    var s = new Set();
+                    decodeURIComponent(getCookie("historylist")).split('#').forEach(function(p){
+                        s.add(p);
+                    });
+                    s.add(dbfile);
+
+                    var parr = [];
+                    s.forEach(function(p){
+                        parr.push(p)
+                    });
+
+                    setCookie("historylist",encodeURIComponent(parr.join('#')),300);
+
+                    location.href="/"
+                }else{
+                    alert("open db failed :\n"+d.msg)
+                }
+            },"json");
+        }
+
+        explorer.init("#cont",function(filepath){
+            location.href='/parsefile?f='+encodeURIComponent(filepath);
+        },null,{
+            fileFilter:function(name){
+                if(name.indexOf('.')>0){
+                    var arr = name.split('.');
+                    var extName = arr[arr.length-1]
+                    return extName.toLowerCase()=='csv' || extName.toLowerCase()=='xlsx'
+                    
+                }else{
+                    return false;
+                }
+            }
+        })
+
+         explorer.listfile("")
+         
+
+        
+
+    </script>
+</body>
+</html>
