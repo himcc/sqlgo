@@ -5,6 +5,13 @@ go 1.19
 require github.com/xuri/excelize/v2 v2.7.0
 
 require (
+	github.com/labstack/gommon v0.3.0 // indirect
+	github.com/mattn/go-colorable v0.1.7 // indirect
+	github.com/mkideal/expr v0.1.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+)
+
+require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.8.2 // indirect
@@ -21,6 +28,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/mkideal/cli v0.2.7
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect

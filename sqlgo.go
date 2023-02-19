@@ -41,6 +41,14 @@ var (
 )
 
 func main() {
+	if len(os.Args) > 1 {
+		cmd()
+	} else {
+		wenbUI()
+	}
+}
+
+func wenbUI() {
 
 	staticFs, err2 := fs.Sub(embedfs, "static")
 	if err2 != nil {
