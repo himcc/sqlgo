@@ -217,7 +217,8 @@ func main() {
 
 	r.POST("/sqlexec", func(c *gin.Context) {
 		sqlstr := c.PostForm("sqlstr")
-		sqlstr = strings.Trim(sqlstr, " \n\r")
+		sqlstr = strings.ReplaceAll(strings.ReplaceAll(sqlstr, "\r", " "), "\n", " ")
+		sqlstr = strings.Trim(sqlstr, " ")
 		if len(sqlstr) < 1 {
 			c.HTML(200, "result.html", gin.H{
 				"err": "sql is blank",
