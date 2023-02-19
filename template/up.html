@@ -2,6 +2,7 @@
 <html lang="en">
     <head>
         <script type="text/javascript" src="/static/jquery-3.6.3.min.js"></script>
+        <script type="text/javascript" src="/static/sql-formatter.min.js"></script>
         <style>
             * { margin: 0; padding: 0;}
             #contoller {
@@ -23,12 +24,13 @@
     </head>
 <body style="margin: 0;width: 100%;height: 100%;overflow: hidden;">
     <div  style="width: 100%;height: 100%;overflow: auto;overflow: hidden;">
-        <div id="editor" style="position : absolute;height: calc(100% - 30px);width: 100%;overflow: hidden;">
-select * from </div>
+        <div id="editor" style="position : absolute;height: calc(100% - 30px);width: 100%;overflow: hidden;">select * from </div>
         <div id="contoller" >
             <div style="width: fit-content;margin: 3px 0 3px 40px;display: inline-block;">
+                font size:<input id="fontSize" type="number" style="width: 30px;height: 20px;" value="24" onchange="changefontsize(this.value)">
                 <button onclick="runall()">Run all</button>
                 <button onclick="runselected()">Run selected</button>
+                <button onclick="formatsql()">Format SQL</button>
             </div>
             <span style="float: right;margin: 3px 8px;"><a target="_blank" href="https://www.sqlite.org/docs.html">sqlite doc</a></span>
             <div>
@@ -49,8 +51,12 @@ select * from </div>
         var editor = ace.edit("editor");
         editor.setTheme("ace/theme/sqlserver");
         editor.session.setMode("ace/mode/sql");
-        editor.setOption("fontSize", "24px");
-
+        var cacheFontSize = getCookie("fontSize");
+        if(cacheFontSize==''){
+            cacheFontSize=24;
+        }
+        editor.setOption("fontSize", cacheFontSize+"px");
+        $("#fontSize").val(cacheFontSize);
 
         function runall(){
             var sql = editor.getValue()
@@ -65,6 +71,37 @@ select * from </div>
                 $("#sqlstr").val(sqlselected);
                 document.forms['postsql'].submit();
             }
+        }
+        function formatsql(){
+            var sql = editor.getValue()
+            var fsql = sqlFormatter.format(sql, { language: 'sqlite' })
+            editor.setValue(fsql)
+        }
+        function changefontsize(n){
+            editor.setOption("fontSize", n+"px");
+            setCookie("fontSize",n,300);
+        }
+        function setCookie(cname, cvalue, exdays) {
+            console.log("setCookie "+cname+" : "+cvalue)
+            var d = new Date();
+            d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+            var expires = "expires="+d.toUTCString();
+            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        }
+
+        function getCookie(cname) {
+            var name = cname + "=";
+            var ca = document.cookie.split(';');
+            for(var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name)  == 0) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return "";
         }
     </script>
 </body>
