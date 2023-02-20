@@ -20,7 +20,7 @@ type Params struct {
 	Separator   string `cli:"s,sep" usage:"column separator. default is \\t" dft:"\t"`
 	DB          string `cli:"d,database" usage:"The path of database file. The file will be created when it does not exist. \n\t\t\t\tTo retain the db file, please provide a path, otherwise, the db in memory will be used." dft:":memory:"`
 	TableDefine string `cli:"t,table" usage:"Table define format '[tableName]:[colName1] coltype1,[colName2] coltype2 ...'. \n\t\t\t\tDefault table name is _t. Default col name is _num(num starts from 1). \n\t\t\t\tDefault col type is text."`
-	SQL         string `cli:"*e,exec" usage:"SQL to be executed。"`
+	SQL         string `cli:"*e,exec" usage:"SQL to be executed."`
 }
 
 type ColDefine struct {

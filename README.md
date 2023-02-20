@@ -25,7 +25,7 @@ Options:
   -t, --table                 Table define format '[tableName]:[colName1] coltype1,[colName2] coltype2 ...'.
                                 Default table name is _t. Default col name is _num(num starts from 1).
                                 Default col type is text.
-  -e, --exec                 *SQL to be executed。
+  -e, --exec                 *SQL to be executed.
 ```
 demo: 
 >  get max height, min height and average height in excel file. [catexcel](https://github.com/himcc/catexcel) can print excel file to console 

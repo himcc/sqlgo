@@ -44,11 +44,11 @@ func main() {
 	if len(os.Args) > 1 {
 		cmd()
 	} else {
-		wenbUI()
+		webUI()
 	}
 }
 
-func wenbUI() {
+func webUI() {
 
 	staticFs, err2 := fs.Sub(embedfs, "static")
 	if err2 != nil {
